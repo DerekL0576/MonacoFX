@@ -69,18 +69,18 @@ public final class Editor {
 
         String registerScript = "require(['vs/editor/editor.main'], function() {\n";
 
-        String registerLang = "monaco.languages.register({ id: '"+ l.getName() + "' })\n";
+        String registerLang = "monaco.languages.register({ id: '" + l.getName() + "' })\n";
 
-        registerScript+=registerLang;
+        registerScript += registerLang;
 
-        if(l.getMonarchSyntaxHighlighter()!=null) {
+        if (l.getMonarchSyntaxHighlighter() != null) {
             String registerMonarch = "monaco.languages.setMonarchTokensProvider(\"" + l.getName() + "\", {\n"
                     + l.getMonarchSyntaxHighlighter().getRules()
                     + "})\n";
-            registerScript+=registerMonarch;
+            registerScript += registerMonarch;
         }
 
-        if(l.getFoldingProvider()!=null) {
+        if (l.getFoldingProvider() != null) {
             window.setMember(("foldingProvider_" + l.getName()),
                     new JFunction((args) -> l.getFoldingProvider().computeFoldings(this))
             );
@@ -92,16 +92,16 @@ public final class Editor {
                     + "}\n"
                     + "});\n";
 
-            registerScript+=registerFoldingProvider;
+            registerScript += registerFoldingProvider;
         }
 
-        registerScript+="\n})";
+        registerScript += "\n})";
 
         engine.executeScript(registerScript);
     }
 
     private void registerThemeJS(EditorTheme t) {
-        String script = "monaco.editor.defineTheme('"+t.name+"', " + t.toJS()+")";
+        String script = "monaco.editor.defineTheme('" + t.name + "', " + t.toJS() + ")";
         engine.executeScript(script);
     }
 
@@ -112,7 +112,7 @@ public final class Editor {
         // register custom languages
         languages.forEach(this::registerLanguageJS);
         languages.addListener((ListChangeListener<LanguageSupport>) c -> {
-            while(c.next()) {
+            while (c.next()) {
                 c.getAddedSubList().stream().forEach(this::registerLanguageJS);
             }
         });
@@ -120,29 +120,29 @@ public final class Editor {
         // register custom themes
         themes.forEach(this::registerThemeJS);
         themes.addListener((ListChangeListener<EditorTheme>) c -> {
-            while(c.next()) {
+            while (c.next()) {
                 c.getAddedSubList().stream().forEach(this::registerThemeJS);
             }
         });
 
         // initial theme
-        if(getCurrentTheme()!=null) {
-            engine.executeScript("monaco.editor.setTheme('"+getCurrentTheme()+"')");
+        if (getCurrentTheme() != null) {
+            engine.executeScript("monaco.editor.setTheme('" + getCurrentTheme() + "')");
         }
 
         // theme changes -> js
         currentThemeProperty().addListener((ov) -> {
-            engine.executeScript("monaco.editor.setTheme('"+getCurrentTheme()+"')");
+            engine.executeScript("monaco.editor.setTheme('" + getCurrentTheme() + "')");
         });
 
         // initial lang
-        if(getCurrentLanguage()!=null) {
-            engine.executeScript("monaco.editor.setModelLanguage(editorView.getModel(),'"+getCurrentLanguage()+"')");
+        if (getCurrentLanguage() != null) {
+            engine.executeScript("monaco.editor.setModelLanguage(editorView.getModel(),'" + getCurrentLanguage() + "')");
         }
 
         // lang changes -> js
         currentLanguageProperty().addListener((ov) -> {
-            engine.executeScript("monaco.editor.setModelLanguage(editorView.getModel(),'"+getCurrentLanguage()+"')");
+            engine.executeScript("monaco.editor.setModelLanguage(editorView.getModel(),'" + getCurrentLanguage() + "')");
         });
 
         getDocument().setEditor(engine, window, editor);
@@ -200,6 +200,47 @@ public final class Editor {
 
     public void registerTheme(EditorTheme theme) {
         this.themes.add(theme);
+    }
+
+    public void setSelection(Selection selection) {
+        String script = "var selectionRange = new monaco.Range(" +
+                selection.start.lineNumber + "," +
+                selection.start.column + "," +
+                selection.stop.lineNumber + "," +
+                selection.stop.column + "," +
+                ");\n" +
+                "editorView.setSelection(selectionRange);\n" +
+                "editorView.revealRangeInCenter(selectionRange);";
+
+        engine.executeScript(script);
+    }
+
+    public Selection getSelection() {
+        JSObject obj = (JSObject) editor.call("getSelection");
+        Position start = null,
+                stop = null;
+        if (obj != null) {
+            //[14,1 -> 14,45]
+            String str = obj.toString();
+            String[] sel = str.substring(1, str.length() - 1)
+                    .replace(" -> ", ",")
+                    .split(",");
+
+            if (sel.length == 4) {
+                start = new Position(Integer.parseInt(sel[0]), Integer.parseInt(sel[1]));
+                if (sel[0] == sel[2] && sel[1] == sel[3]) {
+                    stop = start;
+                } else {
+                    stop = new Position(Integer.parseInt(sel[2]), Integer.parseInt(sel[3]));
+                }
+            }
+        }
+        if (start == null) {
+            start = new Position(0, 0);
+            stop = start;
+        }
+
+        return new Selection(start, stop);
     }
 
 
