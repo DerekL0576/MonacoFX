@@ -28,19 +28,19 @@
 <html>
 <head>
 
-<!--	<meta http-equiv="X-UA-Compatible" content="IE=edge" />-->
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-    
+    <!--	<meta http-equiv="X-UA-Compatible" content="IE=edge" />-->
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+
     <style type="text/css">
         html, body {
             height: 100%;
             margin: 0;
         }
 
-		body {
-			overflow-x: hidden;
-			overflow-y: hidden;
-		}
+        body {
+            overflow-x: hidden;
+            overflow-y: hidden;
+        }
 
         #container {
             height: 100%;
@@ -58,30 +58,33 @@
 
     var editorCreatedCallback;
 
-	var foldingProvider;
-	var editorView;
-	var contentChangeListener;
-	var scrollChangeListener;
+    var foldingProvider;
+    var editorView;
+    var contentChangeListener;
+    var scrollChangeListener;
 
-	require.config({ paths: { 'vs': './package/min/vs' }});
+    require.config({paths: {'vs': './package/min/vs'}});
 
-	require(['vs/editor/editor.main'], function() {
+    require(['vs/editor/editor.main'], function () {
 
-		editorView = monaco.editor.create(document.getElementById('container'), {
+        editorView = monaco.editor.create(document.getElementById('container'), {
 
-			//theme: 'mylangTheme',
+            //theme: 'mylangTheme',
 
-			value: getCode(),
+            value: getCode(),
 
-			//language: 'mylang',
+            //language: 'mylang',
+
+            minimap: {enabled: false},
 
             automaticLayout: true,
 
             roundedSelection: false,
 
-			mouseWheelScrollSensitivity: 0.1,
+            //seems like 0.001 per line, so 0.003 scrolls 3 lines at a time
+            mouseWheelScrollSensitivity: 0.03,
 
-			scrollBeyondLastLine: false,
+            scrollBeyondLastLine: false,
 
             scrollbar: {
                 // Subtle shadows to the left & top. Defaults to true.
@@ -105,22 +108,22 @@
                 horizontalScrollbarSize: 17,
                 arrowSize: 30,
 
-				alwaysConsumeMouseWheel: false
-	        }
+                alwaysConsumeMouseWheel: false
+            }
 
         });
 
         // overrides the context menu 'copy'
         let copyAction = editorView.getAction('editor.action.clipboardCopyAction');
         copyAction.run = function () {
-           clipboardBridge.copy(editorView.getSelection());
+            clipboardBridge.copy(editorView.getSelection());
         };
 
-       // overrides the context menu 'cut'
+        // overrides the context menu 'cut'
         let cutAction = editorView.getAction('editor.action.clipboardCutAction');
         cutAction.run = function () {
-           clipboardBridge.copy(editorView.getSelection());
-           editorView.trigger('', 'cut');
+            clipboardBridge.copy(editorView.getSelection());
+            editorView.trigger('', 'cut');
         };
 
         // adds 'paste' into the context menu
@@ -137,23 +140,23 @@
             }
         });
 
-        if(editorCreatedCallback!=null) {
+        if (editorCreatedCallback != null) {
             editorCreatedCallback.apply([editorView]);
         }
 
-		editorView.onDidChangeModelContent((ev) => {
-            if(contentChangeListener!=null) {
-               contentChangeListener.apply([ev]);
+        editorView.onDidChangeModelContent((ev) => {
+            if (contentChangeListener != null) {
+                contentChangeListener.apply([ev]);
             }
         });
 
-		editorView.onDidScrollChange((ev) => {
-            if(scrollChangeListener!=null) {
-               scrollChangeListener.apply([ev]);
+        editorView.onDidScrollChange((ev) => {
+            if (scrollChangeListener != null) {
+                scrollChangeListener.apply([ev]);
             }
         });
 
-		// UNDO-/REDO functionality
+        // UNDO-/REDO functionality
         const initialVersion = editorView.getModel().getAlternativeVersionId();
         let currentVersion = initialVersion;
         let lastVersion = initialVersion;
@@ -191,7 +194,7 @@
             currentVersion = versionId;
         });
 
-	});
+    });
 
     function undo() {
         editorView.trigger('aaaa', 'undo', 'aaaa');
@@ -203,13 +206,13 @@
         editorView.focus();
     }
 
-	function getCode() {
+    function getCode() {
 
-		return [
-			''
-		].join('\n');
+        return [
+            ''
+        ].join('\n');
 
-	}
+    }
 
     // change the text without losing document history
     function updateText(text) {
@@ -221,8 +224,8 @@
         editorView.pushUndoStop();
     }
 
-	function getEditorView() {
-		return editorView;
+    function getEditorView() {
+        return editorView;
     }
 
 </script>
